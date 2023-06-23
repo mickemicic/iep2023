@@ -1,0 +1,122 @@
+version: '3'
+
+services:
+  authenticationDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - DATABASE_URL=authenticationDB
+#    ports:
+#      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - authenticationVolume:/var/lib/mysql
+    networks:
+      - authenticationNetwork
+
+  authenticationDBMigration:
+    image: authenticationdbmigration
+    environment:
+      - DATABASE_URL=authenticationDB
+    depends_on:
+      authenticationDB:
+        condition: service_healthy
+    networks:
+      - authenticationNetwork
+
+  authentication:
+    image: authentication
+    environment:
+      - DATABASE_URL=authenticationDB
+    depends_on:
+      - authenticationDBMigration
+    ports:
+      - "5002:5002"
+    networks:
+      - authenticationNetwork
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - authenticationNetwork
+      - storeNetwork
+
+  storeDatabase:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - DATABASE_URL=storeDatabase
+#    ports:
+#      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - storeVolume:/var/lib/mysql
+    networks:
+      - ownerNetwork
+      - customerNetwork
+      - courierNetwork
+      - storeNetwork
+
+  storeDBMigration:
+    image: storedbmigration
+    environment:
+      - DATABASE_URL=storeDatabase
+    depends_on:
+      storeDatabase:
+          condition: service_healthy
+    networks:
+      - storeNetwork
+
+  owner:
+    image: owner
+    environment:
+      - DATABASE_URL=storeDatabase
+    depends_on:
+      - storeDBMigration
+    ports:
+      - "5005:5005"
+    networks:
+      - ownerNetwork
+
+  customer:
+    image: customer
+    environment:
+      - DATABASE_URL=storeDatabase
+    depends_on:
+      - storeDBMigration
+    ports:
+      - "5004:5004"
+    networks:
+      - customerNetwork
+
+  courier:
+    image: courier
+    environment:
+      - DATABASE_URL=storeDatabase
+    depends_on:
+      - storeDBMigration
+    ports:
+      - "5003:5003"
+    networks:
+      - courierNetwork
+
+
+volumes:
+  authenticationVolume:
+  storeVolume:
+
+networks:
+  authenticationNetwork:
+  storeNetwork:
+
+  ownerNetwork:
+  courierNetwork:
+  customerNetwork:
