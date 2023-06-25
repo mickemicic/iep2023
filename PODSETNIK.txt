@@ -1,0 +1,9 @@
+DAKLE
+    1. napises contract u .sol                              -samo jednom
+    2. kompajlujes ga da bi dobio bytecode.bin i abi.abi    -samo jednom
+    3. deploy contract na web3, odavde dobijas adresu       -samo jednom po contractu
+    4. dohvatas objekat contracta koristeci abi i adresu    -kad pozivas funkcije contracta
+
+
+
+        DODAJ U USERE ADRESU PA IM PREKO GANACHE DODAJ PRI REGISTRACIJI I STAVI DEFAULTNI PRIVATE KEY

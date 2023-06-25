@@ -58,6 +58,8 @@ class Order(database.Model):
     status = database.Column(database.String(256), nullable=False)
     timestamp = database.Column(database.TIMESTAMP, nullable=False)
 
+    address = database.Column(database.String(256), nullable=False)
+
     buyer = database.Column(database.String(256), nullable=False)
 
     productOrders = database.relationship("OrderProduct", back_populates="myOrder")

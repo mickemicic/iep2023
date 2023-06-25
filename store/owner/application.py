@@ -4,13 +4,13 @@ from flask import Flask, jsonify, Response, request
 from flask_jwt_extended import JWTManager, jwt_required
 from sqlalchemy import func
 
-from roleDecorator import roleCheck
-from configuration import Configuration
-from models import database, Product, Category, OrderProduct, ProductCategory
+# from roleDecorator import roleCheck
+# from configuration import Configuration
+# from models import database, Product, Category, OrderProduct, ProductCategory
 
-# from store.roleDecorator import roleCheck
-# from store.configuration import Configuration
-# from store.models import database, Product, Category, OrderProduct, ProductCategory
+from store.roleDecorator import roleCheck
+from store.configuration import Configuration
+from store.models import database, Product, Category, OrderProduct, ProductCategory
 
 import io
 import csv
@@ -139,7 +139,6 @@ def probica():
         for row in reader:
             print(len(row))
     return jsonify({}), 200
-
 
 
 if __name__ == "__main__":
