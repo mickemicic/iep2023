@@ -7,13 +7,13 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from web3 import Web3, HTTPProvider, Account
 # from solcx import compile_source
 
-# from roleDecorator import roleCheck
-# from configuration import Configuration
-# from models import database, Product, Category, Order, OrderProduct
+from roleDecorator import roleCheck
+from configuration import Configuration
+from models import database, Product, Category, Order, OrderProduct
 
-from store.roleDecorator import roleCheck
-from store.configuration import Configuration
-from store.models import database, Product, Category, Order, OrderProduct
+# from store.roleDecorator import roleCheck
+# from store.configuration import Configuration
+# from store.models import database, Product, Category, Order, OrderProduct
 
 web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
 
@@ -330,6 +330,8 @@ def delivered():
 
     contract = web3.eth.contract(abi=abi, address=contract_address)
 
+    resp = contract.functions.confirmDelivery().call()
+    print(resp)
 
     reqOrder.status = "COMPLETE"
     OrderProd = OrderProduct.query.filter(OrderProduct.orderId == reqOrder.id).all()
@@ -338,9 +340,6 @@ def delivered():
         o.received = o.quantity
         o.requested = 0
     database.session.commit()
-
-    resp = contract.functions.confirmDelivery().call()
-    print(resp)
 
     return application.response_class(status=200)
 

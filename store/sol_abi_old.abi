@@ -7,8 +7,8 @@
 				"type": "uint256"
 			},
 			{
-				"internalType": "address payable",
-				"name": "_owner",
+				"internalType": "address",
+				"name": "_customer",
 				"type": "address"
 			},
 			{
@@ -42,19 +42,6 @@
 	},
 	{
 		"inputs": [],
-		"name": "contractOwner",
-		"outputs": [
-			{
-				"internalType": "address payable",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
 		"name": "courier",
 		"outputs": [
 			{
@@ -74,6 +61,19 @@
 				"internalType": "bool",
 				"name": "",
 				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "customer",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
@@ -110,45 +110,6 @@
 		"name": "depositFunds",
 		"outputs": [],
 		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getContractOwner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getCourier",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getDeposit",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{

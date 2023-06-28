@@ -8,6 +8,8 @@ COPY models.py ./models.py
 COPY requirements.txt ./requirements.txt
 COPY roleDecorator.py ./roleDecorator.py
 COPY courier/application.py ./courier/application.py
+COPY sol_abi.abi ./sol_abi.abi
+COPY sol_bytecode.bin ./sol_bytecode.bin
 
 RUN pip install -r ./requirements.txt
 
