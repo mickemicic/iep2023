@@ -1,25 +1,21 @@
 {
-  "id": 1,
-  "keys": {
-    "version": 3,
-    "address": "0x1E02c315F1bC8a1F45d89B6a59d664dce4f5Df5a",
-    "crypto": {
-      "cipher": "aes-128-ctr",
-      "cipherparams": {
-        "iv": "de74a9671d535240b6cc2dd2c33e63f5"
-      },
-      "ciphertext": "0da08847e81348d8ca850734f5be4d3af20fcd55a913271020f6b1c86ab2f0cc",
-      "kdf": "scrypt",
-      "kdfparams": {
-        "dklen": 32,
-        "n": 262144,
-        "r": 1,
-        "p": 8,
-        "salt": "d5913a187652f50011a57e4260696dbf"
-      },
-      "mac": "b8081aa2e49d1fc42527c6ecdfe6d6ebef49ca570d75be98577a2a0a3246f1e5"
+  "version": 3,
+  "id": "912a0605-ac7f-40a5-8758-b8456c3757bd",
+  "address": "0x1E02c315F1bC8a1F45d89B6a59d664dce4f5Df5a",
+  "crypto": {
+    "cipher": "aes-128-ctr",
+    "cipherparams": {
+      "iv": "de74a9671d535240b6cc2dd2c33e63f5"
     },
-    "id": "912a0605-ac7f-40a5-8758-b8456c3757bd"
-  },
-  "passphrase": "iep_project"
+    "ciphertext": "0da08847e81348d8ca850734f5be4d3af20fcd55a913271020f6b1c86ab2f0cc",
+    "kdf": "scrypt",
+    "kdfparams": {
+      "dklen": 32,
+      "n": 262144,
+      "r": 1,
+      "p": 8,
+      "salt": "d5913a187652f50011a57e4260696dbf"
+    },
+    "mac": "b8081aa2e49d1fc42527c6ecdfe6d6ebef49ca570d75be98577a2a0a3246f1e5"
+  }
 }

@@ -10,12 +10,18 @@ from web3 import Web3, HTTPProvider, Account
 from roleDecorator import roleCheck
 from configuration import Configuration
 from models import database, Product, Category, Order, OrderProduct
+from web3.exceptions import InvalidAddress, ContractLogicError
+
+# from store.courier.application import web3
+
+from blokic import web3
 
 # from store.roleDecorator import roleCheck
 # from store.configuration import Configuration
 # from store.models import database, Product, Category, Order, OrderProduct
 
-web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
+# web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
+owner = web3.eth.accounts[0]
 
 application = Flask(__name__)
 application.config.from_object(Configuration)
@@ -28,8 +34,17 @@ def readFile(path):
         return file.read()
 
 
-bytecode = readFile("../sol_bytecode.bin")
-abi = readFile("../sol_abi.abi")
+bytecode = readFile("./sol_bytecode.bin")
+abi = readFile("./sol_abi.abi")
+
+setContract = web3.eth.contract(
+    bytecode=bytecode,
+    abi=abi
+)
+
+
+# bytecode = 123
+# abi = 123
 
 
 @application.route("/search", methods=["GET"])
@@ -108,20 +123,25 @@ def order():
         address = request.json.get("address")
         if address is None or len(address) == 0:
             return jsonify({"message": "Field address is missing."}), 400
+        print(address)
 
-        addressExists = 0
-        for i in web3.eth.accounts:
-            if i == address:
-                addressExists = 1
-                print("PRONADJENA")
+        # addressExists = 0
+        # for i in web3.eth.accounts:
+        #     if i == address:
+        #         addressExists = 1
+        #         print("PRONADJENA")
+        #
+        # if addressExists == 0:
+        #     return jsonify({"message": "Invalid address."}), 400
 
-        if addressExists == 0:
+        if not web3.is_address(address):
             return jsonify({"message": "Invalid address."}), 400
 
         proArr = []
         totalPrice = 0
 
-        newOrd = Order(price=0, status="CREATED", timestamp=datetime.now().isoformat(), buyer=get_jwt_identity(), address=address)
+        newOrd = Order(price=0, status="CREATED", timestamp=datetime.now().isoformat(), buyer=get_jwt_identity(),
+                       address=0)
         database.session.add(newOrd)
         database.session.commit()
 
@@ -131,29 +151,40 @@ def order():
 
             proArr.append(pro)
             newOrdPro = OrderProduct(orderId=newOrd.id, productId=idPro, price=pro.price, quantity=req["quantity"],
-                                        received=0, requested=req["quantity"])
+                                     received=0, requested=req["quantity"])
             totalPrice = totalPrice + pro.price * req["quantity"]
 
             database.session.add(newOrdPro)
 
             database.session.commit()
 
+        try:
+            intPrice = int(totalPrice)
+            value = web3.to_wei(intPrice, 'ether')
+            conHash = setContract.constructor(address, value).transact({
+                "from": owner
+            })
+            receipt = web3.eth.wait_for_transaction_receipt(conHash)
+        except InvalidAddress:
+            return jsonify({"message": "Invalid address."}), 400
+
+        newOrd.address = receipt.contractAddress
         newOrd.price = totalPrice
         database.session.commit()
 
-#######
-        deployed_contract = web3.eth.contract(abi=abi, bytecode=bytecode)
-        constructor_args = (newOrd.id, web3.to_checksum_address("0x3514df7e736618bf1e8f19262b5b79058428ac89"), int(totalPrice))
-        transaction_hash = deployed_contract.constructor(*constructor_args).transact({
-            'from': address
-        }) #########
-        transaction_receipt = web3.eth.wait_for_transaction_receipt(transaction_hash)
-
-        # Retrieve the contract address
-        contract_address = transaction_receipt['contractAddress']
-
-        newOrd.address = contract_address
-################
+        #######
+        # deployed_contract = web3.eth.contract(abi=abi, bytecode=bytecode)
+        # constructor_args = (newOrd.id, web3.to_checksum_address("0x3514df7e736618bf1e8f19262b5b79058428ac89"), int(totalPrice))
+        # transaction_hash = deployed_contract.constructor(*constructor_args).transact({
+        #     'from': address
+        # }) #########
+        # transaction_receipt = web3.eth.wait_for_transaction_receipt(transaction_hash)
+        #
+        # # Retrieve the contract address
+        # contract_address = transaction_receipt['contractAddress']
+        #
+        # newOrd.address = contract_address
+        ################
         ###
         # contract = web3.eth.contract(abi=abi, address=contract_address)  # ovo loaduje contract da bi pozivao funkcije
         # contract.d
@@ -170,7 +201,7 @@ def order():
         # tx_hash = web3.eth.send_raw_transaction(signed_transaction.rawTransaction)
         # tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
-        database.session.commit()
+        # database.session.commit()
 
         return jsonify({"id": newOrd.id}), 200
 
@@ -234,44 +265,69 @@ def pay():
     if reqOrder is None:
         return jsonify({"message": "Invalid order id."}), 400
 
-    try:
-        keys = request.json.get("keys")
-    except AttributeError:
+    if "keys" not in request.json or request.json["keys"] == "":
         return jsonify({"message": "Missing keys."}), 400
 
-    if keys is None:
-        return jsonify({"message": "Missing keys."}), 400
-
-    try:
-        passphrase = request.json.get("passphrase")
-    except AttributeError:
+    if "passphrase" not in request.json or len(request.json["passphrase"]) == 0:
         return jsonify({"message": "Missing passphrase."}), 400
+    # try:
+    #     keys = request.json.get("keys")
+    # except (AttributeError, KeyError, TypeError):
+    #     return jsonify({"message": "Missing keys."}), 400
+    #
+    # if keys is None or len(keys) == 0:
+    #     return jsonify({"message": "Missing keys."}), 400
+    #
+    # try:
+    #     passphrase = request.json.get("passphrase", None)
+    # except AttributeError:
+    #     return jsonify({"message": "Missing passphrase."}), 400
+    #
+    # if not passphrase or len(passphrase) == 0:
+    #     return jsonify({"message": "Missing passphrase."}), 400
 
-    if len(passphrase) == 0:
-        return jsonify({"message": "Missing passphrase."}), 400
-
+    passphrase = request.json.get("passphrase")
+    keys = request.json.get("keys")
     try:
         private_key = Account.decrypt(keys, passphrase).hex()
-    except KeyError:
+        address = web3.to_checksum_address(keys["address"])
+    except (KeyError, ValueError, TypeError):
         return jsonify({"message": "Invalid credentials."}), 400
 
-    account = web3.eth.account.from_key(private_key)
-    balanceWei = web3.eth.get_balance(account.address)
-    balance = web3.from_wei(balanceWei, 'ether')
+    balance = web3.eth.get_balance(address)
+    balanceWei = web3.to_wei(balance, 'ether')
+    contract = web3.eth.contract(
+        reqOrder.address,
+        abi=abi,
+        bytecode=bytecode
+    )
 
-    if reqOrder.price > balance:
+    if reqOrder.price > balanceWei:
         return jsonify({"message": "Insufficient funds."}), 400
-
-    contract_address = reqOrder.address
-    contract = web3.eth.contract(abi=abi, address=contract_address)
 
     deposit = contract.functions.getDeposit().call()
     if deposit > 0:
         return jsonify({"message": "Transfer already complete."}), 400
 
-    value = web3.to_wei(int(reqOrder.price), 'ether')
+    intPrice = int(reqOrder.price)
 
-    contract.functions.depositFunds().transact({'value': value})
+    value = web3.from_wei(intPrice, 'ether')  ##OPO
+
+    try:
+        transaction = contract.functions.depositFunds().build_transaction({
+            "from": address,
+            "value": value,
+            "gasPrice": 21000,
+            "nonce": web3.eth.get_transaction_count(address)
+        })
+
+        signedTrans = web3.eth.account.sign_transaction(transaction, private_key)
+        transHash = web3.eth.send_raw_transaction(signedTrans.rawTransaction)
+        receipt = web3.eth.wait_for_transaction_receipt(transHash)
+
+    except ContractLogicError as e:
+        mes = e.message[e.message.find("revert ") + 7:]
+        return {"message": mes}, 400
 
     return application.response_class(status=200)
 
@@ -327,11 +383,26 @@ def delivered():
 
     account = web3.eth.account.from_key(private_key)
     contract_address = reqOrder.address
+    address = web3.to_checksum_address(keys["address"])
 
-    contract = web3.eth.contract(abi=abi, address=contract_address)
+    contract = web3.eth.contract(
+        abi=abi,
+        bytecode=bytecode,
+        address=contract_address
+    )
 
-    resp = contract.functions.confirmDelivery().call()
-    print(resp)
+    try:
+        transaction = contract.functions.confirmDelivery().build_transaction({
+            "from": address,
+            "gasPrice": 21000,
+            "nonce": web3.eth.get_transaction_count(address)
+        })
+        signedTrans = web3.eth.account.sign_transaction(transaction, private_key)
+        transHash = web3.eth.send_raw_transaction(signedTrans.rawTransaction)
+        receipt = web3.eth.wait_for_transaction_receipt(transHash)
+    except ValueError:
+        return jsonify({"message": "Invalid customer account."}), 400
+    # print(resp)
 
     reqOrder.status = "COMPLETE"
     OrderProd = OrderProduct.query.filter(OrderProduct.orderId == reqOrder.id).all()
@@ -346,7 +417,7 @@ def delivered():
 
 @application.route("/", methods=["GET"])
 def index():
-    contractic()
+    # contractic()
     return "customer RADI!"
 
 

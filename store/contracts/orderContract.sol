@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract DeliveryContract {
-    address payable public contractOwner;       //customer
+    address public customer;       //customer
     address payable public courier;
     address payable public owner;
     uint public orderValue;
@@ -12,15 +12,14 @@ contract DeliveryContract {
 
     uint private orderId;
 
-    constructor (uint _orderId, address payable _owner, uint _orderValue){
-        orderId = _orderId;
-        contractOwner = payable(msg.sender);
-        owner = _owner;
+    constructor (address payable _customer, uint _orderValue){
+        owner = payable(msg.sender);
+        customer = _customer;
         orderValue = _orderValue;
     }
 
-    modifier onlyContractOwner() {
-        require(msg.sender == contractOwner, "Only contract owner can call this function.");
+    modifier onlyCustomer() {
+        require(msg.sender == customer, "Only contract owner can call this function.");
         _;
     }
 
@@ -44,8 +43,8 @@ contract DeliveryContract {
         _;
     }
 
-    function getContractOwner() public view returns (address){
-        return contractOwner;
+    function getCustomer() public view returns (address){
+        return customer;
     }
 
     function getCourier() public view returns (address){
@@ -61,12 +60,12 @@ contract DeliveryContract {
         courierAssigned = true;
     }
 
-    function depositFunds() public payable onlyContractOwner onlyBeforeDeliveryConfirmed {
+    function depositFunds() public payable onlyCustomer onlyBeforeDeliveryConfirmed {
         require(msg.value == orderValue, "Incorrect deposit amount.");
         deposit = msg.value;
     }
 
-    function confirmDelivery() public onlyContractOwner onlyAfterCourierAssigned onlyBeforeDeliveryConfirmed {
+    function confirmDelivery() public onlyCustomer onlyAfterCourierAssigned onlyBeforeDeliveryConfirmed {
         deliveryConfirmed = true;
         uint ownerAmount = (deposit * 80) / 100;
         uint courierAmount = (deposit * 20) / 100;

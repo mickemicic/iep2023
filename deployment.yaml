@@ -41,7 +41,7 @@ services:
   adminer:
     image: adminer
     ports:
-      - "8083:8080"
+      - "8081:8080"
     networks:
       - authenticationNetwork
       - storeNetwork
@@ -64,6 +64,7 @@ services:
       - customerNetwork
       - courierNetwork
       - storeNetwork
+      - sparkNetwork
 
   storeDBMigration:
     image: storedbmigration
@@ -85,11 +86,13 @@ services:
       - "5005:5005"
     networks:
       - ownerNetwork
+      - sparkNetwork
 
   customer:
     image: customer
     environment:
       - DATABASE_URL=storeDatabase
+      - BLOCKCHAIN=ganache
     depends_on:
       - storeDBMigration
     ports:
@@ -101,6 +104,7 @@ services:
     image: courier
     environment:
       - DATABASE_URL=storeDatabase
+      - BLOCKCHAIN=ganache
     depends_on:
       - storeDBMigration
     ports:
@@ -121,10 +125,10 @@ services:
     image: bde2020/spark-master:3.3.0-hadoop3.3
     container_name: spark-master
     ports:
-      - "8080:8080"
+      - "8087:8080"
       - "7077:7077" # mozda i ovo nije potrebno
     environment:
-      - INIT_DAEMON_STEP=setup_spark
+        INIT_DAEMON_STEP: setup_spark
     networks:
       - storeNetwork
 
@@ -157,6 +161,8 @@ services:
     depends_on: [spark-master, spark-worker-1, spark-worker-2]
     environment:
       - ENABLE_INIT_DAEMON=false
+    networks:
+      - sparkNetwork
 
 volumes:
   authenticationVolume:
@@ -165,6 +171,7 @@ volumes:
 networks:
   authenticationNetwork:
   storeNetwork:
+  sparkNetwork:
 
   ownerNetwork:
   courierNetwork:

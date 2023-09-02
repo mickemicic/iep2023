@@ -146,7 +146,7 @@ def login():
     # return Response ( accessToken, status = 200 );
     # return jsonify(accessToken=accessToken, refreshToken=refreshToken)
 
-    return Response(json.dumps({"accessToken": accessToken}), status=200)
+    return jsonify(accessToken=accessToken)
 
 
 @application.route("/delete", methods=["POST"])
@@ -231,12 +231,12 @@ def startup():
 
         owner = User.query.filter(User.email == "onlymoney@gmail.com").first()
 
-        ownerRole = UserRole(
+        ownerUserRole = UserRole(
             userId=owner.id,
             roleId=ownerRole.id
         )
         database.session.add(owner)
-        database.session.add(ownerRole)
+        database.session.add(ownerUserRole)
     database.session.commit()
 
 

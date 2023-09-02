@@ -8,12 +8,16 @@ from models import database, Order
 from roleDecorator import roleCheck
 from configuration import Configuration
 
+from blokic import web3
+
 # from store.models import database, Order
 # from store.roleDecorator import roleCheck
 # from store.configuration import Configuration
 
 import io
 import csv
+
+from web3.exceptions import ContractLogicError
 
 application = Flask(__name__)
 application.config.from_object(Configuration)
@@ -26,9 +30,9 @@ def readFile(path):
         return file.read()
 
 
-web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
-bytecode = readFile("../sol_bytecode.bin")
-abi = readFile("../sol_abi.abi")
+# web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
+bytecode = readFile("./sol_bytecode.bin")
+abi = readFile("./sol_abi.abi")
 
 
 @application.route("/orders_to_deliver", methods=["GET"])
@@ -52,53 +56,56 @@ def ordersToDeliver():
 @jwt_required()
 @roleCheck("courier")
 def pickUpOrder():
-    try:
-        orderId = request.json.get("id")
-    except AttributeError:
-        return jsonify({"message": "Missing order id."}), 400
-
-    if orderId is None:
-        return jsonify({"message": "Missing order id."}), 400
+    if "id" not in request.json:
+        return {"message": "Missing order id."}, 400
 
     try:
-        int(orderId)
+        if int(request.json["id"]) <= 0:
+            return {"message": "Invalid order id."}, 400
     except ValueError:
-        return jsonify({"message": "Invalid order id."}), 400
+        return {"message": "Invalid order id."}, 400
 
-    if orderId <= 0 or int(orderId) != orderId:
-        return jsonify({"message": "Invalid order id."}), 400
+    orderId = request.json["id"]
 
     reqOrder = Order.query.filter(Order.id == orderId).first()
 
     if reqOrder is None:
         return jsonify({"message": "Invalid order id."}), 400
 
-    if reqOrder.status != "PENDING":
+    if reqOrder.status != "CREATED":
         return jsonify({"message": "Invalid order id."}), 400
 
-    address = request.json.get("address")
-    if address is None or len(address) == 0:
-        return jsonify({"message": "Missing address."}), 400
+    if "address" not in request.json or request.json["address"] == "":
+        return {"message": "Missing address."}, 400
 
-    addressExists = 0
-    for i in web3.eth.accounts:
-        if i == address:
-            addressExists = 1
-            print("PRONADJENA")
+    if not web3.is_address(request.json["address"]):
+        return {"message": "Invalid address."}, 400
 
-    if addressExists == 0:
-        return jsonify({"message": "Invalid address."}), 400
+    address = request.json["address"]
 
     contract_address = reqOrder.address
-    contract = web3.eth.contract(abi=abi, address=contract_address)
+    contract = web3.eth.contract(
+        abi=abi,
+        bytecode=bytecode,
+        address=contract_address
+    )
 
     paid = contract.functions.getDeposit().call()
     if int(reqOrder.price) != paid:
         return jsonify({"message": "Transfer not complete."}), 400
 
-    contract.functions.assignCourier(address).call()
+    owner = web3.eth.accounts[0]
 
-    reqOrder.status = "TRANSIT"
+    try:
+        contract.functions.assignCourier(address).transact({
+            "from": owner
+        })
+
+    except ContractLogicError as e:
+        mes = e.message[e.message.find("revert ") + 7:]
+        return {"message": mes}, 400
+
+    reqOrder.status = "PENDING"
     database.session.commit()
 
     return application.response_class(status=200)

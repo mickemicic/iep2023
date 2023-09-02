@@ -1,6 +1,6 @@
 /1.  totalPrice je generalno float, ali u smart contract prihvata samo int
 2.  vlasnik snosi troskove vezivanja kurira (gas), ali kurir poziva f za prihvatanje dostave = vlasnik treba da potpise transakciju
-3.  kako da promenim keys.json ako se korisnici prave tek nakon pokretanja kontejnera
+3.  kako da promenim keys.json ako se korisnici prave tek nakon pokretanja kontejnera   /generisi ih skriptom pri pokretanju
 /4.  kako da testiram da li se zapravo desavaju ganache transakcije dohvati u py transakcije prkeo blokova (testovi/utilites.py)
 5.  da li mi je dobar deployment.yaml?
 6.  da li ovaj etherwallet nesto sluzi - za demo, moze da sluzi da pravis keys.json
