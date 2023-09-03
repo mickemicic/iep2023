@@ -14,14 +14,13 @@ from web3.exceptions import InvalidAddress, ContractLogicError
 
 # from store.courier.application import web3
 
-from blokic import web3
+from blokic import web3, owner, abi, bytecode, setContract
 
 # from store.roleDecorator import roleCheck
 # from store.configuration import Configuration
 # from store.models import database, Product, Category, Order, OrderProduct
 
 # web3 = Web3(HTTPProvider("http://127.0.0.1:8545"))
-owner = web3.eth.accounts[0]
 
 application = Flask(__name__)
 application.config.from_object(Configuration)
@@ -34,13 +33,13 @@ def readFile(path):
         return file.read()
 
 
-bytecode = readFile("./sol_bytecode.bin")
-abi = readFile("./sol_abi.abi")
-
-setContract = web3.eth.contract(
-    bytecode=bytecode,
-    abi=abi
-)
+# bytecode = readFile("./sol_bytecode.bin")
+# abi = readFile("./sol_abi.abi")
+#
+# setContract = web3.eth.contract(
+#     bytecode=bytecode,
+#     abi=abi
+# )
 
 
 # bytecode = 123
@@ -160,8 +159,7 @@ def order():
 
         try:
             intPrice = int(totalPrice)
-            value = web3.to_wei(intPrice, 'ether')
-            conHash = setContract.constructor(address, value).transact({
+            conHash = setContract.constructor(address, intPrice).transact({
                 "from": owner
             })
             receipt = web3.eth.wait_for_transaction_receipt(conHash)
@@ -302,21 +300,21 @@ def pay():
         bytecode=bytecode
     )
 
-    if reqOrder.price > balanceWei:
+    price = int(reqOrder.price)
+
+    if int(reqOrder.price) > balanceWei:
         return jsonify({"message": "Insufficient funds."}), 400
 
     deposit = contract.functions.getDeposit().call()
     if deposit > 0:
         return jsonify({"message": "Transfer already complete."}), 400
 
-    intPrice = int(reqOrder.price)
-
-    value = web3.from_wei(intPrice, 'ether')  ##OPO
+    value = web3.from_wei(price, 'ether')  ##OPO
 
     try:
         transaction = contract.functions.depositFunds().build_transaction({
             "from": address,
-            "value": value,
+            "value": price,
             "gasPrice": 21000,
             "nonce": web3.eth.get_transaction_count(address)
         })
@@ -336,14 +334,13 @@ def pay():
 @jwt_required()
 @roleCheck("customer")
 def delivered():
-    try:
-        orderId = request.json.get("id")
-    except AttributeError:
-        return jsonify({"message": "Missing order id."}), 400
 
-    if orderId is None:
-        return jsonify({"message": "Missing order id."}), 400
+    orderId = request.json.get('id', None)
+    keys = request.json.get('keys', None)
+    passphrase = request.json.get('passphrase', None)
 
+    if not orderId:
+        return jsonify({"message": "Missing order id."}), 400
     try:
         int(orderId)
     except ValueError:
@@ -357,33 +354,22 @@ def delivered():
     if reqOrder is None:
         return jsonify({"message": "Invalid order id."}), 400
 
-    if reqOrder.status != "TRANSIT":
+    if reqOrder.status != "PENDING":
         return jsonify({"message": "Invalid order id."}), 400
 
-    try:
-        keys = request.json.get("keys")
-    except AttributeError:
+    if not keys:
         return jsonify({"message": "Missing keys."}), 400
-
-    if keys is None:
-        return jsonify({"message": "Missing keys."}), 400
-
-    try:
-        passphrase = request.json.get("passphrase")
-    except AttributeError:
-        return jsonify({"message": "Missing passphrase."}), 400
-
-    if len(passphrase) == 0:
+    if not passphrase or len(passphrase) == 0:
         return jsonify({"message": "Missing passphrase."}), 400
 
     try:
-        private_key = Account.decrypt(keys, passphrase).hex()
-    except KeyError:
+        c_keys = json.loads(request.json["keys"].repalce("'", '"'))
+        private_key = Account.decrypt(c_keys, passphrase).hex()
+        # account = web3.eth.account.from_key(private_key)
+        contract_address = reqOrder.address
+        address = web3.to_checksum_address(keys["address"])
+    except (KeyError, ValueError):
         return jsonify({"message": "Invalid credentials."}), 400
-
-    account = web3.eth.account.from_key(private_key)
-    contract_address = reqOrder.address
-    address = web3.to_checksum_address(keys["address"])
 
     contract = web3.eth.contract(
         abi=abi,
@@ -406,7 +392,7 @@ def delivered():
 
     reqOrder.status = "COMPLETE"
     OrderProd = OrderProduct.query.filter(OrderProduct.orderId == reqOrder.id).all()
-    print(OrderProd)
+    # print(OrderProd)
     for o in OrderProd:
         o.received = o.quantity
         o.requested = 0
